@@ -4,6 +4,8 @@
 //! egui background layer, recreating the classic Windows 3.x Mystify screen
 //! saver.  The simulation runs at a fixed 30 fps time-step regardless of the
 //! actual display refresh rate so the animation looks identical on any monitor.
+//! Rendering only happens while the window is focused, so no CPU is consumed
+//! when the tab is in the background.
 //!
 //! # Usage
 //!
@@ -134,7 +136,14 @@ impl MystifyBackground {
     ///
     /// Call this once per frame **before** drawing any UI panels or windows so
     /// the animation appears behind all other content.
+    ///
+    /// Returns immediately without painting or scheduling a repaint if the
+    /// window does not have focus, saving CPU when the tab is backgrounded.
     pub fn paint(&mut self, ctx: &Context) {
+        if !ctx.input(|input| input.focused) {
+            return;
+        }
+
         let time = ctx.input(|input| input.time);
 
         // Accumulate wall-clock time elapsed since the last frame, clamped to
