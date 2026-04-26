@@ -60,7 +60,7 @@ self.addEventListener("fetch", (event) => {
         const networkResponse = await fetch(event.request);
         const url = new URL(event.request.url);
         if (url.origin === self.location.origin && networkResponse.ok) {
-          cache.put(event.request, networkResponse.clone());
+          await cache.put(event.request, networkResponse.clone());
         }
         return networkResponse;
       } catch {
