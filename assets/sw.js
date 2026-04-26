@@ -1,4 +1,4 @@
-const VERSION = "v1";
+const VERSION = "__CACHE_VERSION__"; // replaced at build time with the sha256 of app_bg.wasm
 const APP_NAME = "egui-screensaver-mystify";
 const CACHE_NAME = `${APP_NAME}-${VERSION}`;
 const APP_STATIC_RESOURCES = [
