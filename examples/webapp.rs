@@ -21,7 +21,7 @@ impl eframe::App for DemoApp {
     }
 }
 
-#[xtask_wasm::run_example(assets_dir = "examples/assets")]
+#[xtask_wasm::run_example]
 fn run_app() {
     let web_options = eframe::WebOptions::default();
 
