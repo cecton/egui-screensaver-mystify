@@ -1,19 +1,22 @@
 const VERSION = "v1";
-const CACHE_NAME = "egui-screensaver-mystify-${VERSION}";
+const APP_NAME = "egui-screensaver-mystify";
+const CACHE_NAME = `${APP_NAME}-${VERSION}`;
 const APP_STATIC_RESOURCES = [
   "./",
   "./index.html",
   "./app.js",
   "./app_bg.wasm",
   "./manifest.json",
-  "./icon-512.png",
+  "./icons/512.png",
+  "./icons/192.png",
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      cache.addAll(APP_STATIC_RESOURCES);
+      await cache.addAll(APP_STATIC_RESOURCES);
+      await self.skipWaiting();
     })(),
   );
 });
@@ -24,10 +27,10 @@ self.addEventListener("activate", (event) => {
       const names = await caches.keys();
       await Promise.all(
         names.map((name) => {
-          if (name !== CACHE_NAME) {
+          if (name.startsWith(APP_NAME) && name !== CACHE_NAME) {
             return caches.delete(name);
           }
-          return undefined;
+          return Promise.resolve(false);
         }),
       );
       await clients.claim();
@@ -36,19 +39,35 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.mode === "navigate") {
-    event.respondWith(caches.match("./"));
-    return;
-  }
+  if (event.request.method !== "GET") return;
 
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      const cachedResponse = await cache.match(event.request);
-      if (cachedResponse) {
-        return cachedResponse;
+      if (event.request.mode === "navigate") {
+        try {
+          return await fetch(event.request);
+        } catch {
+          const cachedIndex = await cache.match("./index.html");
+          if (cachedIndex) return cachedIndex;
+          throw new Error("Offline and no cached index.html");
+        }
       }
-      return fetch(event.request);
+      const cachedResponse = await cache.match(event.request);
+      if (cachedResponse) return cachedResponse;
+
+      try {
+        const networkResponse = await fetch(event.request);
+        const url = new URL(event.request.url);
+        if (url.origin === self.location.origin && networkResponse.ok) {
+          cache.put(event.request, networkResponse.clone());
+        }
+        return networkResponse;
+      } catch {
+        const fallback = await cache.match(event.request, { ignoreSearch: true });
+        if (fallback) return fallback;
+        throw new Error(`Offline and no cache match: ${event.request.url}`);
+      }
     })(),
   );
 });
