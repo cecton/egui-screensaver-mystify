@@ -48,7 +48,7 @@ self.addEventListener("fetch", (event) => {
         try {
           return await fetch(event.request);
         } catch {
-          const cachedIndex = await cache.match("./index.html");
+          const cachedIndex = await cache.match(new URL("./index.html", self.location).href);
           if (cachedIndex) return cachedIndex;
           throw new Error("Offline and no cached index.html");
         }
